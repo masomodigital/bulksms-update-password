@@ -91,9 +91,10 @@
   const userInfoDiv = document.getElementById('userInfo');
 
   let currentNationalId = null;
-  const scriptURL = "https://script.google.com/macros/s/AKfycbyfszmItZbHUgdPLElnsmSq3_SvZHyZVi_oxEJ1FldUfyotMeGI0gFkwCE4J4Z1Sk3jJQ/exec";
 
-  findForm.addEventListener('submit', e => {
+  const webAppUrl = "https://script.google.com/macros/s/AKfycbyfszmItZbHUgdPLElnsmSq3_SvZHyZVi_oxEJ1FldUfyotMeGI0gFkwCE4J4Z1Sk3jJQ/exec";
+
+  findForm.addEventListener('submit', async e => {
     e.preventDefault();
     statusDiv.textContent = "Finding user...";
     statusDiv.className = "";
@@ -101,33 +102,29 @@
 
     const nationalId = findForm.nationalIdFind.value.trim();
 
-    fetch(scriptURL, {
-      method: "POST",
-      body: JSON.stringify({ action: "findUser", nationalId }),
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-    .then(res => res.json())
-    .then(response => {
-      if (response.success) {
+    try {
+      const response = await fetch(`${webAppUrl}?action=findUser&nationalId=${encodeURIComponent(nationalId)}`);
+      const result = await response.json();
+
+      if(result.success) {
         currentNationalId = nationalId;
         statusDiv.textContent = "";
         userInfoDiv.style.display = "block";
-        document.getElementById('userName').textContent = response.name;
-        document.getElementById('userCredits').textContent = response.smsCredits;
-        document.getElementById('userPhone').textContent = response.phoneNumber;
-        updateForm.newPassword.value = "";
-        updateForm.confirmPassword.value = "";
+        document.getElementById('userName').textContent = result.name;
+        document.getElementById('userCredits').textContent = result.smsCredits;
+        document.getElementById('userPhone').textContent = result.phoneNumber;
       } else {
         currentNationalId = null;
-        statusDiv.textContent = response.msg;
+        statusDiv.textContent = result.msg;
         statusDiv.className = "error";
       }
-    });
+    } catch (err) {
+      statusDiv.textContent = "Error contacting server.";
+      statusDiv.className = "error";
+    }
   });
 
-  updateForm.addEventListener('submit', e => {
+  updateForm.addEventListener('submit', async e => {
     e.preventDefault();
     statusDiv.textContent = "";
 
@@ -140,7 +137,7 @@
     const newPassword = updateForm.newPassword.value.trim();
     const confirmPassword = updateForm.confirmPassword.value.trim();
 
-    if (!newPassword || !confirmPassword) {
+    if (newPassword === "" || confirmPassword === "") {
       statusDiv.textContent = "Please enter and confirm your new password.";
       statusDiv.className = "error";
       return;
@@ -153,26 +150,36 @@
     }
 
     statusDiv.textContent = "Updating password...";
+    statusDiv.className = "";
 
-    fetch(scriptURL, {
-      method: "POST",
-      body: JSON.stringify({ action: "updatePassword", nationalId: currentNationalId, newPassword }),
-      headers: {
-        "Content-Type": "application/json"
-      }
-    })
-    .then(res => res.json())
-    .then(response => {
-      if (response.success) {
-        statusDiv.textContent = response.msg;
+    try {
+      const response = await fetch(webAppUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          action: "updatePassword",
+          nationalId: currentNationalId,
+          newPassword: newPassword
+        })
+      });
+
+      const result = await response.json();
+
+      if(result.success) {
+        statusDiv.textContent = result.msg;
         statusDiv.className = "success";
         updateForm.newPassword.value = "";
         updateForm.confirmPassword.value = "";
       } else {
-        statusDiv.textContent = response.msg;
+        statusDiv.textContent = result.msg;
         statusDiv.className = "error";
       }
-    });
+    } catch (err) {
+      statusDiv.textContent = "Error contacting server.";
+      statusDiv.className = "error";
+    }
   });
 </script>
 
