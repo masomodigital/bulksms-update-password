@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Change Password</title>
+  <meta charset="UTF-8" />
+  <title>Change Password - GitHub Pages Frontend</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -62,7 +62,7 @@
 
   <form id="findForm">
     <label for="nationalIdFind">Enter National ID:</label>
-    <input type="text" id="nationalIdFind" name="nationalIdFind" required>
+    <input type="text" id="nationalIdFind" name="nationalIdFind" required />
     <button type="submit">Find User</button>
   </form>
 
@@ -75,10 +75,10 @@
 
     <form id="updateForm">
       <label for="newPassword">New Password:</label>
-      <input type="password" id="newPassword" name="newPassword" required>
+      <input type="password" id="newPassword" name="newPassword" required />
 
       <label for="confirmPassword">Confirm New Password:</label>
-      <input type="password" id="confirmPassword" name="confirmPassword" required>
+      <input type="password" id="confirmPassword" name="confirmPassword" required />
 
       <button type="submit">Update Password</button>
     </form>
@@ -90,9 +90,10 @@
   const statusDiv = document.getElementById('status');
   const userInfoDiv = document.getElementById('userInfo');
 
-  let currentNationalId = null;
+  // Replace this URL with your deployed Google Apps Script Web App URL
+  const GAS_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyfszmItZbHUgdPLElnsmSq3_SvZHyZVi_oxEJ1FldUfyotMeGI0gFkwCE4J4Z1Sk3jJQ/exec";
 
-  const webAppUrl = "https://script.google.com/macros/s/AKfycbyfszmItZbHUgdPLElnsmSq3_SvZHyZVi_oxEJ1FldUfyotMeGI0gFkwCE4J4Z1Sk3jJQ/exec";
+  let currentNationalId = null;
 
   findForm.addEventListener('submit', async e => {
     e.preventDefault();
@@ -103,24 +104,30 @@
     const nationalId = findForm.nationalIdFind.value.trim();
 
     try {
-      const response = await fetch(`${webAppUrl}?action=findUser&nationalId=${encodeURIComponent(nationalId)}`);
-      const result = await response.json();
+      const url = `${GAS_WEB_APP_URL}?action=findUser&nationalId=${encodeURIComponent(nationalId)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Network response was not OK');
+      const data = await response.json();
 
-      if(result.success) {
+      if (data.success) {
         currentNationalId = nationalId;
         statusDiv.textContent = "";
         userInfoDiv.style.display = "block";
-        document.getElementById('userName').textContent = result.name;
-        document.getElementById('userCredits').textContent = result.smsCredits;
-        document.getElementById('userPhone').textContent = result.phoneNumber;
+        document.getElementById('userName').textContent = data.name;
+        document.getElementById('userCredits').textContent = data.smsCredits;
+        document.getElementById('userPhone').textContent = data.phoneNumber;
+
+        updateForm.newPassword.value = "";
+        updateForm.confirmPassword.value = "";
       } else {
         currentNationalId = null;
-        statusDiv.textContent = result.msg;
+        statusDiv.textContent = data.msg;
         statusDiv.className = "error";
       }
-    } catch (err) {
+    } catch (error) {
       statusDiv.textContent = "Error contacting server.";
       statusDiv.className = "error";
+      console.error(error);
     }
   });
 
@@ -153,35 +160,28 @@
     statusDiv.className = "";
 
     try {
-      const response = await fetch(webAppUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          action: "updatePassword",
-          nationalId: currentNationalId,
-          newPassword: newPassword
-        })
-      });
+      const url = `${GAS_WEB_APP_URL}?action=updatePassword&nationalId=${encodeURIComponent(currentNationalId)}&newPassword=${encodeURIComponent(newPassword)}`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Network response was not OK');
+      const data = await response.json();
 
-      const result = await response.json();
-
-      if(result.success) {
-        statusDiv.textContent = result.msg;
+      if (data.success) {
+        statusDiv.textContent = data.msg;
         statusDiv.className = "success";
         updateForm.newPassword.value = "";
         updateForm.confirmPassword.value = "";
       } else {
-        statusDiv.textContent = result.msg;
+        statusDiv.textContent = data.msg;
         statusDiv.className = "error";
       }
-    } catch (err) {
+    } catch (error) {
       statusDiv.textContent = "Error contacting server.";
       statusDiv.className = "error";
+      console.error(error);
     }
   });
 </script>
 
 </body>
 </html>
+
